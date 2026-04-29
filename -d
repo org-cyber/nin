@@ -1,0 +1,2 @@
+{"status":"error","message":"API key is required","code":401}--_curl_--"nin":"12345678901"
+--_curl_--"consent":true

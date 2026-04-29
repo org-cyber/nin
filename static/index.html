@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NIN Lookup — ID Print</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #181c27;
+      --border: #2a2f3f;
+      --accent: #00e5a0;
+      --accent-dim: rgba(0, 229, 160, 0.12);
+      --text: #e8eaf0;
+      --muted: #6b7280;
+      --error: #ff5f5f;
+      --mono: 'IBM Plex Mono', monospace;
+      --sans: 'IBM Plex Sans', sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+    }
+
+    /* ── Header ── */
+    header {
+      width: 100%;
+      max-width: 480px;
+      margin-bottom: 2.5rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .logo-dot {
+      width: 10px; height: 10px;
+      background: var(--accent);
+      border-radius: 50%;
+      flex-shrink: 0;
+      box-shadow: 0 0 8px var(--accent);
+    }
+    header h1 {
+      font-family: var(--mono);
+      font-size: 0.95rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text);
+    }
+    header span {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-left: auto;
+    }
+
+    /* ── Card ── */
+    .card {
+      width: 100%;
+      max-width: 480px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 2rem;
+    }
+
+    /* ── Input row ── */
+    .input-label {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+      display: block;
+    }
+    .input-row {
+      display: flex;
+      gap: 0.75rem;
+    }
+    #ninInput {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      font-family: var(--mono);
+      font-size: 1.1rem;
+      letter-spacing: 0.15em;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    #ninInput:focus {
+      border-color: var(--accent);
+    }
+    #ninInput::placeholder { color: var(--muted); letter-spacing: 0.05em; }
+
+    #lookupBtn {
+      background: var(--accent);
+      color: #0f1117;
+      border: none;
+      border-radius: 8px;
+      padding: 0.75rem 1.5rem;
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      white-space: nowrap;
+    }
+    #lookupBtn:hover { opacity: 0.88; }
+    #lookupBtn:active { transform: scale(0.97); }
+    #lookupBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── Spinner ── */
+    .spinner {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border: 2px solid #0f1117;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Error ── */
+    #errorMsg {
+      display: none;
+      margin-top: 1rem;
+      padding: 0.75rem 1rem;
+      background: rgba(255, 95, 95, 0.1);
+      border: 1px solid rgba(255, 95, 95, 0.3);
+      border-radius: 8px;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      color: var(--error);
+    }
+
+    /* ── Divider ── */
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 1.75rem 0;
+    }
+
+    /* ── Result ── */
+    #result { display: none; }
+
+    .result-header {
+      display: flex;
+      gap: 1.25rem;
+      align-items: flex-start;
+      margin-bottom: 1.5rem;
+    }
+    #photo {
+      width: 90px;
+      height: 110px;
+      object-fit: cover;
+      border-radius: 6px;
+      border: 2px solid var(--accent);
+      flex-shrink: 0;
+      background: var(--border);
+    }
+    .name-block { flex: 1; }
+    .result-label {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      margin-bottom: 0.25rem;
+    }
+    #fullname {
+      font-size: 1.15rem;
+      font-weight: 600;
+      line-height: 1.3;
+      margin-bottom: 0.75rem;
+    }
+    #nin-display {
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      color: var(--muted);
+      letter-spacing: 0.12em;
+    }
+
+    /* ── Fields grid ── */
+    .fields {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .field { display: flex; flex-direction: column; gap: 0.2rem; }
+    .field-label {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+    .field-value {
+      font-size: 0.88rem;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    /* Full-width field */
+    .field.full { grid-column: 1 / -1; }
+
+    /* ── Signature ── */
+    .sig-row {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      margin-bottom: 1.5rem;
+    }
+    #signature {
+      height: 48px;
+      object-fit: contain;
+      object-position: left;
+      filter: invert(1);
+      opacity: 0.7;
+    }
+
+    /* ── Print button ── */
+    #printBtn {
+      width: 100%;
+      background: transparent;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      border-radius: 8px;
+      padding: 0.75rem;
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+    #printBtn:hover {
+      background: var(--accent-dim);
+    }
+
+    /* ── Print styles ── */
+    @media print {
+      @page { size: 85.6mm 54mm; margin: 0; }
+
+      body, html { margin: 0; padding: 0; background: #fff; }
+
+      /* Hide everything except the print card */
+      body > * { display: none !important; }
+      #print-card { display: block !important; }
+    }
+
+    #print-card {
+      display: none;
+      width: 85.6mm;
+      height: 54mm;
+      background: #fff;
+      font-family: Arial, sans-serif;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* card layout */
+    #print-card .pc-header {
+      background: #1a3a6b;
+      color: #fff;
+      padding: 3mm 4mm 2mm;
+      display: flex;
+      align-items: center;
+      gap: 2mm;
+    }
+    #print-card .pc-header-title {
+      font-size: 7pt;
+      font-weight: bold;
+      letter-spacing: 0.5pt;
+      text-transform: uppercase;
+    }
+    #print-card .pc-header-sub {
+      font-size: 5pt;
+      opacity: 0.8;
+    }
+    #print-card .pc-body {
+      display: flex;
+      padding: 2.5mm 4mm;
+      gap: 3mm;
+    }
+    #print-card .pc-photo {
+      width: 22mm;
+      height: 28mm;
+      object-fit: cover;
+      border: 0.5mm solid #ccc;
+      flex-shrink: 0;
+    }
+    #print-card .pc-info { flex: 1; }
+    #print-card .pc-name {
+      font-size: 8pt;
+      font-weight: bold;
+      margin-bottom: 1.5mm;
+      color: #1a3a6b;
+      text-transform: uppercase;
+    }
+    #print-card .pc-row {
+      display: flex;
+      gap: 2mm;
+      margin-bottom: 1mm;
+    }
+    #print-card .pc-field { flex: 1; }
+    #print-card .pc-label {
+      font-size: 4.5pt;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.3pt;
+    }
+    #print-card .pc-val {
+      font-size: 6pt;
+      color: #222;
+      font-weight: 600;
+    }
+    #print-card .pc-nin {
+      font-size: 6pt;
+      font-family: 'Courier New', monospace;
+      letter-spacing: 1pt;
+      color: #1a3a6b;
+      font-weight: bold;
+      margin-top: 1.5mm;
+      border-top: 0.3mm solid #ddd;
+      padding-top: 1mm;
+    }
+    #print-card .pc-sig {
+      height: 8mm;
+      object-fit: contain;
+      object-position: left;
+      margin-top: 1mm;
+    }
+    #print-card .pc-footer {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      background: #1a3a6b;
+      height: 4mm;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo-dot"></div>
+    <h1>NIN Lookup</h1>
+    <span>Internal Use Only</span>
+  </header>
+
+  <div class="card">
+    <label class="input-label" for="ninInput">National Identification Number</label>
+    <div class="input-row">
+      <input
+        type="text"
+        id="ninInput"
+        inputmode="numeric"
+        maxlength="11"
+        placeholder="00000000000"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <button id="lookupBtn">Lookup</button>
+    </div>
+
+    <div id="errorMsg"></div>
+
+    <div id="result">
+      <hr class="divider" />
+
+      <div class="result-header">
+        <img id="photo" src="" alt="NIN Photo" />
+        <div class="name-block">
+          <div class="result-label">Full Name</div>
+          <div id="fullname"></div>
+          <div id="nin-display"></div>
+        </div>
+      </div>
+
+      <div class="fields">
+        <div class="field">
+          <span class="field-label">Date of Birth</span>
+          <span class="field-value" id="f-dob">—</span>
+        </div>
+        <div class="field">
+          <span class="field-label">Gender</span>
+          <span class="field-value" id="f-gender">—</span>
+        </div>
+        <div class="field">
+          <span class="field-label">Phone</span>
+          <span class="field-value" id="f-phone">—</span>
+        </div>
+        <div class="field">
+          <span class="field-label">Marital Status</span>
+          <span class="field-value" id="f-marital">—</span>
+        </div>
+        <div class="field">
+          <span class="field-label">State of Origin</span>
+          <span class="field-value" id="f-state">—</span>
+        </div>
+        <div class="field">
+          <span class="field-label">LGA of Origin</span>
+          <span class="field-value" id="f-lga">—</span>
+        </div>
+        <div class="field full">
+          <span class="field-label">Residential Address</span>
+          <span class="field-value" id="f-address">—</span>
+        </div>
+      </div>
+
+      <div class="sig-row" id="signatureRow">
+        <span class="field-label">Signature</span>
+        <img id="signature" src="" alt="Signature" />
+      </div>
+
+      <button id="printBtn">🖨 &nbsp;Print ID Card</button>
+    </div>
+  </div>
+
+  <!-- Hidden print layout — ISO/IEC 7810 ID-1 card size (85.6 × 54 mm) -->
+  <div id="print-card">
+    <div class="pc-header">
+      <div>
+        <div class="pc-header-title">Federal Republic of Nigeria</div>
+        <div class="pc-header-sub">National Identity Card</div>
+      </div>
+    </div>
+    <div class="pc-body">
+      <img class="pc-photo" id="pc-photo" src="" alt="" />
+      <div class="pc-info">
+        <div class="pc-name" id="pc-name"></div>
+        <div class="pc-row">
+          <div class="pc-field">
+            <div class="pc-label">Date of Birth</div>
+            <div class="pc-val" id="pc-dob"></div>
+          </div>
+          <div class="pc-field">
+            <div class="pc-label">Gender</div>
+            <div class="pc-val" id="pc-gender"></div>
+          </div>
+        </div>
+        <div class="pc-row">
+          <div class="pc-field">
+            <div class="pc-label">State of Origin</div>
+            <div class="pc-val" id="pc-state"></div>
+          </div>
+          <div class="pc-field">
+            <div class="pc-label">LGA</div>
+            <div class="pc-val" id="pc-lga"></div>
+          </div>
+        </div>
+        <div class="pc-nin" id="pc-nin"></div>
+        <img class="pc-sig" id="pc-sig" src="" alt="Signature" />
+      </div>
+    </div>
+    <div class="pc-footer"></div>
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+
+    const ninInput   = $('ninInput');
+    const lookupBtn  = $('lookupBtn');
+    const errorMsg   = $('errorMsg');
+    const resultDiv  = $('result');
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    function showError(msg) {
+      errorMsg.textContent = msg;
+      errorMsg.style.display = 'block';
+    }
+    function clearError() {
+      errorMsg.textContent = '';
+      errorMsg.style.display = 'none';
+    }
+    function setLoading(on) {
+      lookupBtn.disabled = on;
+      lookupBtn.innerHTML = on
+        ? '<span class="spinner"></span>Looking up…'
+        : 'Lookup';
+    }
+    function b64Src(b64, mime = 'image/jpeg') {
+      if (!b64) return '';
+      if (b64.startsWith('data:')) return b64;
+      return `data:${mime};base64,${b64}`;
+    }
+    function cap(str) {
+      if (!str) return '—';
+      return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+    }
+    function orDash(val) { return val && val.trim() ? val : '—'; }
+
+    // ── Only allow digits ────────────────────────────────────────────────────
+    ninInput.addEventListener('input', () => {
+      ninInput.value = ninInput.value.replace(/\D/g, '').slice(0, 11);
+    });
+
+    // ── Lookup ───────────────────────────────────────────────────────────────
+    lookupBtn.addEventListener('click', async () => {
+      clearError();
+      const nin = ninInput.value.trim();
+
+      if (nin.length !== 11) {
+        showError('NIN must be exactly 11 digits.');
+        return;
+      }
+
+      setLoading(true);
+      resultDiv.style.display = 'none';
+
+      try {
+        const res = await fetch('/api/lookup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nin, consent: true }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          showError(data.error || 'Lookup failed. Please try again.');
+          return;
+        }
+
+        populateResult(nin, data);
+        resultDiv.style.display = 'block';
+
+      } catch (err) {
+        showError('Network error. Check your connection and try again.');
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    ninInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') lookupBtn.click();
+    });
+
+    // ── Populate ─────────────────────────────────────────────────────────────
+    function populateResult(nin, d) {
+      const photoSrc = b64Src(d.photo);
+      const sigSrc   = b64Src(d.signature);
+      const fullname = [d.firstname, d.middlename, d.surname]
+        .filter(Boolean).map(cap).join(' ');
+
+      // Screen view
+      $('photo').src        = photoSrc;
+      $('fullname').textContent  = fullname || '—';
+      $('nin-display').textContent = `NIN: ${nin}`;
+      $('f-dob').textContent     = orDash(d.birthdate);
+      $('f-gender').textContent  = cap(d.gender);
+      $('f-phone').textContent   = orDash(d.phone);
+      $('f-marital').textContent = cap(d.maritalstatus);
+      $('f-state').textContent   = cap(d.birthstate);
+      $('f-lga').textContent     = cap(d.birthlga);
+      $('f-address').textContent = orDash(d.address);
+
+      // Signature: if empty, hide the whole row to avoid broken image
+      const sigRow = $('signatureRow');
+      if (d.signature && d.signature.trim()) {
+        $('signature').src = sigSrc;
+        sigRow.style.display = 'flex';
+      } else {
+        sigRow.style.display = 'none';
+        $('signature').removeAttribute('src');
+      }
+
+      // Print card
+      $('pc-photo').src   = photoSrc;
+      $('pc-name').textContent  = fullname || '—';
+      $('pc-dob').textContent   = orDash(d.birthdate);
+      $('pc-gender').textContent = cap(d.gender);
+      $('pc-state').textContent = cap(d.birthstate);
+      $('pc-lga').textContent   = cap(d.birthlga);
+      $('pc-nin').textContent   = `NIN: ${nin}`;
+
+      // Print signature
+      const pcSig = $('pc-sig');
+      if (d.signature && d.signature.trim()) {
+        pcSig.src = sigSrc;
+        pcSig.style.display = 'block';
+      } else {
+        pcSig.style.display = 'none';
+        pcSig.removeAttribute('src');
+      }
+    }
+
+    // ── Print ─────────────────────────────────────────────────────────────────
+    $('printBtn').addEventListener('click', () => {
+      window.print();
+    });
+  </script>
+</body>
+</html>
