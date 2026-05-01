@@ -1,0 +1,418 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NIN Digital Slip</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: #d9d9d9;
+  font-family: 'Roboto', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 30px;
+}
+
+.card-wrapper {
+  width: 100%;
+}
+
+/* ───────────────────────────────────────── */
+/* DIGITAL NIN CARD */
+/* ───────────────────────────────────────── */
+
+.nin-card {
+  position: relative;
+  width: 815px;
+  height: 460px;
+  background: #ffffff;
+  overflow: hidden;
+  border: 3px solid black;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+   outline: 3px solid #000;
+}
+
+/* background pattern */
+
+/* giant NIN watermark */
+.watermark {
+  position: absolute;
+  top: -60px;
+  left: 80px;
+  font-size: 300px;
+  font-weight: 900;
+  color: rgba(123, 189, 89, 0.11);
+  letter-spacing: -18px;
+  z-index: 0;
+  user-select: none;
+}
+
+/* eagle watermark */
+.eagle {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 0;
+  opacity: 0.12;
+  pointer-events: none;
+}
+
+.eagle img {
+  width: 300px;
+  height: auto;
+  object-fit: contain;
+}
+
+.header {
+  position: absolute;
+  top: 30px;
+  left: 82px;
+  z-index: 2;
+}
+
+.header h1 {
+  font-size: 33px;
+  line-height: 1;
+  font-weight: 900;
+  color: #2ea043;
+  letter-spacing: -1px;
+}
+
+.header h2 {
+  margin-top: -2px;
+  font-size: 26px;
+  font-weight: 400;
+  color: #4c4c4c;
+  letter-spacing: 0.5px;
+}
+
+.photo-box {
+  position: absolute;
+  top: 102px;
+  left: 16px;
+  width: 163px;
+  height: 225px;
+  background: #cfd6db;
+  overflow: hidden;
+  z-index: 2;
+}
+
+.photo-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.info {
+  position: absolute;
+  top: 110px;
+  left: 214px;
+  width: 340px;
+  z-index: 2;
+}
+
+.label {
+  color: #9b9686;
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.value {
+  color: #000;
+  font-size: 19px;
+  font-weight: 500;
+  letter-spacing: 5px;
+  margin-bottom: 18px;
+}
+
+.flex-row {
+  display: flex;
+  gap: 70px;
+}
+
+.qr-wrapper {
+  position: absolute;
+  top: 30px;
+  right: 18px;
+  width: 205px;
+  z-index: 2;
+  text-align: center;
+}
+
+#qrcode {
+  width: 195px;
+  height: 195px;
+  background: white;
+  padding: 8px;
+  margin: 0 auto;
+}
+
+.qr-text {
+  margin-top: 10px;
+  font-size: 20px;
+  color: #9b9686;
+  letter-spacing: 4px;
+}
+
+.country {
+  margin-top: -4px;
+  font-size: 26px;
+  font-weight: 900;
+  color: #000;
+}
+
+.issue-title {
+  margin-top: 4px;
+  font-size: 23px;
+  font-weight: 900;
+  color: #000;
+}
+
+.issue-date {
+  margin-top: 4px;
+  font-size: 20px;
+  letter-spacing: 5px;
+  color: #000;
+}
+
+.nin-section {
+  position: absolute;
+  bottom: 22px;
+  width: 100%;
+  text-align: center;
+  z-index: 2;
+}
+
+.nin-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #000;
+}
+
+.nin-number {
+  margin-top: 2px;
+  font-size: 58px;
+  font-weight: 400;
+  letter-spacing: 10px;
+  color: #000;
+}
+
+.diagonal-left,
+.diagonal-right {
+  position: absolute;
+  font-size: 18px;
+  color: rgba(114, 114, 114, 0.55);
+  letter-spacing: 4px;
+  z-index: 1;
+}
+
+.diagonal-left {
+  transform: rotate(-48deg);
+  left: -25px;
+  top: 310px;
+}
+
+.diagonal-right {
+  transform: rotate(32deg);
+  right: -20px;
+  top: 290px;
+}
+
+.demo-toggle {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  align-items: center;
+  font-size: 15px;
+}
+
+button {
+  margin-top: 20px;
+  width: 100%;
+  height: 54px;
+  border: none;
+  background: #2ea043;
+  color: white;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  border-radius: 10px;
+}
+
+button:hover {
+  opacity: 0.92;
+}
+
+@media print {
+  @page { margin: 6mm; size: auto; } 
+  body {
+    background: white;
+    padding: 0;
+  }
+
+  .demo-toggle,
+  button {
+    display: none;
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="card-wrapper">
+
+  <div class="nin-card">
+
+    
+
+    <div class="eagle">
+  
+</div>
+
+    <div class="header">
+      <h1>FEDERAL REPUBLIC OF NIGERIA</h1>
+      <h2>DIGITAL NIN SLIP</h2>
+    </div>
+
+    <div class="photo-box">
+      <img id="photo" src="https://placehold.co/163x225/cfd6db/444444?text=PHOTO" alt="Photo">
+    </div>
+
+    <div class="info">
+
+      <div class="label">SURNAME/NOM</div>
+      <div class="value" id="surname">WOBO</div>
+
+      <div class="label">GIVEN NAMES/PRENOMS</div>
+      <div class="value" id="firstname">ACHINUHU, FRANCA</div>
+
+      <div class="flex-row">
+
+        <div>
+          <div class="label">DATE OF BIRTH</div>
+          <div class="value" id="dob">10 MAY 1986</div>
+        </div>
+
+        <div>
+          <div class="label">SEX/SEXE</div>
+          <div class="value" id="gender">F</div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <div class="qr-wrapper">
+      <div id="qrcode"></div>
+
+      <div class="qr-text" id="qrNin">51363125249</div>
+
+      <div class="country">NGA</div>
+
+      <div class="issue-title">ISSUE DATE</div>
+
+      <div class="issue-date" id="issueDate">29 APR 2026</div>
+    </div>
+
+    <div class="diagonal-left">5136 312 5249</div>
+    <div class="diagonal-right">5136 312 5249</div>
+
+    <div class="nin-section">
+      <div class="nin-title">
+        National Identification Number (NIN)
+      </div>
+
+      <div class="nin-number" id="ninDisplay">
+        5136 312 5249
+      </div>
+    </div>
+
+  </div>
+
+  <div class="demo-toggle">
+    <label>
+      <input type="checkbox" id="demoToggle" checked>
+      Demo Mode
+    </label>
+  </div>
+
+  <button onclick="window.print()">
+    Print Digital Slip
+  </button>
+
+</div>
+
+<script>
+const demoData = {
+  nin: '51363125249',
+  surname: 'WOBO',
+  firstname: 'ACHINUHU, FRANCA',
+  dob: '10 MAY 1986',
+  gender: 'F',
+  issueDate: '29 APR 2026',
+  photo: 'https://placehold.co/163x225/cfd6db/444444?text=PHOTO'
+};
+
+function formatNIN(nin) {
+  return nin.replace(/(\d{4})(\d{3})(\d{4})/, '$1 $2 $3');
+}
+
+function populateCard(data) {
+
+  document.getElementById('surname').textContent = data.surname;
+
+  document.getElementById('firstname').textContent = data.firstname;
+
+  document.getElementById('dob').textContent = data.dob;
+
+  document.getElementById('gender').textContent = data.gender;
+
+  document.getElementById('issueDate').textContent = data.issueDate;
+
+  document.getElementById('photo').src = data.photo;
+
+  const formattedNin = formatNIN(data.nin);
+
+  document.getElementById('ninDisplay').textContent = formattedNin;
+
+  document.querySelector('.diagonal-left').textContent = formattedNin;
+
+  document.querySelector('.diagonal-right').textContent = formattedNin;
+
+  document.getElementById('qrNin').textContent = data.nin;
+
+  document.getElementById('qrcode').innerHTML = '';
+
+  new QRCode(document.getElementById('qrcode'), {
+    text: data.nin,
+    width: 179,
+    height: 179,
+    correctLevel: QRCode.CorrectLevel.H
+  });
+}
+
+populateCard(demoData);
+</script>
+
+</body>
+</html>
+
