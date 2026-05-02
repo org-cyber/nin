@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dmiebi Ventures — Lookup History</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background: #f7f7f7;
+      margin: 0;
+      padding: 40px;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 32px;
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    }
+    h1 { color: #1e6e3c; margin-bottom: 24px; }
+    .password-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    input[type="password"] {
+      padding: 8px 12px;
+      border: 1.5px solid #ccc;
+      border-radius: 6px;
+      font-size: 14px;
+      width: 200px;
+    }
+    button {
+      padding: 8px 20px;
+      background: #1e6e3c;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:hover { background: #175c30; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+    }
+    th {
+      text-align: left;
+      font-weight: 600;
+      border-bottom: 2px solid #ddd;
+      padding: 8px 12px;
+      background: #f0f0f0;
+    }
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #eee;
+    }
+    .error { color: #c00; margin-top: 8px; }
+    .back-link { margin-top: 24px; display: inline-block; color: #1e6e3c; text-decoration: none; }
+    .back-link:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 Lookup History</h1>
+    <div class="password-row">
+      <input type="password" id="passwordInput" placeholder="Manager password" />
+      <button id="loadBtn">Load History</button>
+    </div>
+    <div id="error" class="error"></div>
+    <table id="historyTable" style="display:none;">
+      <thead>
+        <tr>
+          <th>Timestamp</th>
+          <th>NIN</th>
+          <th>Full Name</th>
+          <th>Phone</th>  
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+    <p id="loading" style="display:none;">Loading…</p>
+    <a class="back-link" href="/">← Back to NIN Lookup</a>
+  </div>
+
+  <script>
+    const passwordInput = document.getElementById('passwordInput');
+    const loadBtn = document.getElementById('loadBtn');
+    const errorDiv = document.getElementById('error');
+    const historyTable = document.getElementById('historyTable');
+    const tableBody = document.getElementById('tableBody');
+    const loadingMsg = document.getElementById('loading');
+
+    loadBtn.addEventListener('click', async () => {
+      const pwd = passwordInput.value.trim();
+      errorDiv.textContent = '';
+      historyTable.style.display = 'none';
+      if (!pwd) {
+        errorDiv.textContent = 'Please enter the password.';
+        return;
+      }
+
+      loadingMsg.style.display = 'block';
+      try {
+        const res = await fetch(`/api/history?password=${encodeURIComponent(pwd)}`);
+        const data = await res.json();
+        if (!res.ok) {
+          errorDiv.textContent = data.error || 'Failed to load.';
+          loadingMsg.style.display = 'none';
+          return;
+        }
+
+        if (data.length === 0) {
+          errorDiv.textContent = 'No lookups recorded yet.';
+          loadingMsg.style.display = 'none';
+          return;
+        }
+
+        tableBody.innerHTML = '';
+        data.forEach(row => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${row.timestamp ? new Date(row.timestamp).toLocaleString() : '—'}</td>
+            <td>${row.nin}</td>
+            <td>${row.fullname}</td>
+            <td>${row.phone || '—'}</td> 
+          `;
+          tableBody.appendChild(tr);
+        });
+        historyTable.style.display = '';
+      } catch (err) {
+        errorDiv.textContent = 'Network error.';
+      } finally {
+        loadingMsg.style.display = 'none';
+      }
+    });
+
+    // Allow Enter to trigger load
+    passwordInput.addEventListener('keydown', e => { if (e.key === 'Enter') loadBtn.click(); });
+  </script>
+</body>
+</html>

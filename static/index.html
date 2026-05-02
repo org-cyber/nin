@@ -3,106 +3,697 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>NIN Digital Slip</title>
+<title>NIN Slip Tool — Dmiebi Ventures</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
 <style>
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+/* ─── TOKENS ─── */
+:root {
+  --green:       #1e6e3c;
+  --green-mid:   #2ea043;
+  --green-pale:  #edf5f0;
+  --ink:         #111410;
+  --ink-mid:     #3b3f38;
+  --ink-light:   #717870;
+  --rule:        #d4dbd6;
+  --surface:     #f8f9f7;
+  --white:       #ffffff;
+  --card-w:      815px;
+
+  --serif:   'DM Serif Display', Georgia, serif;
+  --sans:    'DM Sans', system-ui, sans-serif;
+  --mono:    'DM Mono', monospace;
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* ─── RESET ─── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { font-size: 16px; scroll-behavior: smooth; }
+
+/* ─── BASE ─── */
 body {
-  background: #d9d9d9;
-  font-family: 'Roboto', sans-serif;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--sans);
   min-height: 100vh;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  padding: 30px;
-  flex-direction: column;   /* ← new, to stack controls above the card */
 }
 
-/* ──── New control strip (hidden when printing) ──── */
-.controls {
+/* ─── LOADING OVERLAY ─── */
+#loader {
+  position: fixed;
+  inset: 0;
+  background: var(--white);
+  z-index: 9999;
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 28px;
+  transition: opacity 0.6s var(--ease-out), visibility 0.6s;
+}
+
+#loader.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.loader-wordmark {
+  font-family: var(--serif);
+  font-size: 22px;
+  color: var(--green);
+  letter-spacing: 0.04em;
+  opacity: 0;
+  animation: fadeUp 0.7s var(--ease-out) 0.1s forwards;
+}
+
+/* Minimalist bar-pulse loader */
+.bar-loader {
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+  height: 32px;
+  opacity: 0;
+  animation: fadeUp 0.7s var(--ease-out) 0.2s forwards;
+}
+
+.bar-loader span {
+  display: block;
+  width: 4px;
+  border-radius: 2px;
+  background: var(--green-mid);
+  animation: barPulse 1.1s ease-in-out infinite;
+}
+
+.bar-loader span:nth-child(1) { height: 10px; animation-delay: 0s; }
+.bar-loader span:nth-child(2) { height: 20px; animation-delay: 0.1s; }
+.bar-loader span:nth-child(3) { height: 28px; animation-delay: 0.2s; }
+.bar-loader span:nth-child(4) { height: 18px; animation-delay: 0.3s; }
+.bar-loader span:nth-child(5) { height: 12px; animation-delay: 0.4s; }
+.bar-loader span:nth-child(6) { height: 22px; animation-delay: 0.5s; }
+.bar-loader span:nth-child(7) { height: 8px;  animation-delay: 0.6s; }
+
+@keyframes barPulse {
+  0%, 100% { transform: scaleY(0.4); opacity: 0.4; }
+  50%       { transform: scaleY(1);   opacity: 1;   }
+}
+
+.loader-sub {
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-light);
+  font-weight: 500;
+  opacity: 0;
+  animation: fadeUp 0.7s var(--ease-out) 0.35s forwards;
+}
+
+/* ─── LOOKUP LOADING STATE ─── */
+.inline-loader {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 0;
+}
+
+.inline-loader.active { display: flex; }
+
+.inline-bar {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 18px;
+}
+
+.inline-bar span {
+  display: block;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--green-mid);
+  animation: barPulse 1.1s ease-in-out infinite;
+}
+
+.inline-bar span:nth-child(1) { height: 6px;  animation-delay: 0s; }
+.inline-bar span:nth-child(2) { height: 12px; animation-delay: 0.1s; }
+.inline-bar span:nth-child(3) { height: 16px; animation-delay: 0.2s; }
+.inline-bar span:nth-child(4) { height: 10px; animation-delay: 0.3s; }
+.inline-bar span:nth-child(5) { height: 7px;  animation-delay: 0.4s; }
+
+.inline-loader-text {
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-light);
+  font-weight: 500;
+}
+
+/* ─── PAGE ANIMATIONS ─── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.7s var(--ease-out), transform 0.7s var(--ease-out);
+}
+
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ─── TOP GOVERNMENT BAR ─── */
+.gov-bar {
+  width: 100%;
+  background: var(--green);
+  padding: 9px 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.gov-bar-left {
+  display: flex;
+  align-items: center;
   gap: 12px;
-  margin-bottom: 24px;
-  background: #fff;
-  padding: 12px 24px;
-  border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
-.controls label {
-  font-weight: 600;
-  font-size: 16px;
-  color: #2ea043;
+.gov-emblem {
+  width: 28px;
+  height: 28px;
+  background: rgba(255,255,255,0.18);
+  border-radius: 50%;
   display: flex;
   align-items: center;
-  gap: 6px;
-  cursor: pointer;
-}
-
-.controls input[type="text"] {
-  padding: 8px 12px;
-  border: 2px solid #cfd6db;
-  border-radius: 6px;
-  font-size: 16px;
-  width: 180px;
-  letter-spacing: 1px;
-  outline: none;
-}
-
-.controls input[type="text"]:focus {
-  border-color: #2ea043;
-}
-
-.controls button {
-  background: #2ea043;
-  border: none;
+  justify-content: center;
+  font-size: 14px;
   color: white;
-  padding: 8px 20px;
-  font-size: 16px;
   font-weight: 700;
-  border-radius: 6px;
-  cursor: pointer;
-  height: auto;      /* override the default button height */
-  width: auto;
+  letter-spacing: -0.5px;
+  flex-shrink: 0;
 }
 
-.controls button:hover {
-  opacity: 0.9;
+.gov-bar-text {
+  font-size: 11.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.82);
+  font-weight: 500;
+  font-family: var(--sans);
+}
+
+.gov-bar-right {
+  font-size: 11px;
+  color: rgba(255,255,255,0.55);
+  letter-spacing: 0.06em;
+  font-weight: 400;
+}
+
+/* ─── SITE HEADER ─── */
+.site-header {
+  width: 100%;
+  max-width: 1080px;
+  padding: 52px 40px 36px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 32px;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 0;
+}
+
+.site-header-left {}
+
+.site-kicker {
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--green-mid);
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.site-title {
+  font-family: var(--serif);
+  font-size: clamp(32px, 4vw, 50px);
+  line-height: 1.05;
+  color: var(--ink);
+  max-width: 520px;
+}
+
+.site-title em {
+  font-style: italic;
+  color: var(--green);
+}
+
+.site-header-right {
+  max-width: 280px;
+  flex-shrink: 0;
+}
+
+.site-desc {
+  font-size: 14px;
+  line-height: 1.75;
+  color: var(--ink-light);
+  font-weight: 300;
+  text-align: right;
+}
+
+/* ─── CONTENT AREA ─── */
+.page-content {
+  width: 100%;
+  max-width: 1080px;
+  padding: 0 40px;
+}
+
+/* ─── INFO STRIP ─── */
+.info-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--rule);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 40px 0;
+}
+
+.info-tile {
+  background: var(--white);
+  padding: 22px 24px;
+}
+
+.info-tile-label {
+  font-size: 10.5px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-light);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.info-tile-value {
+  font-family: var(--serif);
+  font-size: 18px;
+  color: var(--ink);
+  line-height: 1.2;
+}
+
+/* ─── LOOKUP PANEL ─── */
+.lookup-section {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 32px;
+  align-items: start;
+  margin-bottom: 48px;
+}
+
+.lookup-left {}
+
+.section-label {
+  font-size: 10.5px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--green-mid);
+  font-weight: 600;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--rule);
+  max-width: 60px;
+}
+
+.lookup-heading {
+  font-family: var(--serif);
+  font-size: 28px;
+  line-height: 1.15;
+  color: var(--ink);
+  margin-bottom: 14px;
+}
+
+.lookup-body {
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--ink-light);
+  font-weight: 300;
+  max-width: 380px;
+}
+
+.lookup-panel {
+  background: var(--white);
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  padding: 28px;
+}
+
+.lookup-panel-header {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-mid);
+  letter-spacing: 0.04em;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--rule);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.demo-badge {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  background: var(--green-pale);
+  color: var(--green);
+  border-radius: 20px;
+  font-weight: 600;
+}
+
+.field-group {
+  margin-bottom: 16px;
+}
+
+.field-label {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-light);
+  font-weight: 600;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.field-input-wrap {
+  position: relative;
+}
+
+.field-input {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1.5px solid var(--rule);
+  border-radius: 7px;
+  font-family: var(--mono);
+  font-size: 15px;
+  letter-spacing: 0.1em;
+  color: var(--ink);
+  background: var(--surface);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.field-input:focus {
+  border-color: var(--green-mid);
+  box-shadow: 0 0 0 3px rgba(46, 160, 67, 0.1);
+  background: var(--white);
+}
+
+.field-input::placeholder { color: #b0b8b3; }
+
+.demo-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+  padding: 12px 14px;
+  background: var(--green-pale);
+  border-radius: 7px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.toggle-track {
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+  background: #c5d4c9;
+  position: relative;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.toggle-track.on { background: var(--green-mid); }
+
+.toggle-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  transition: transform 0.2s var(--ease-out);
+}
+
+.toggle-track.on .toggle-thumb { transform: translateX(16px); }
+
+.toggle-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-mid);
+}
+
+.toggle-sub {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--ink-light);
+}
+
+.lookup-btn {
+  width: 100%;
+  padding: 13px;
+  background: var(--green);
+  color: white;
+  border: none;
+  border-radius: 7px;
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.lookup-btn:hover { background: #175c30; }
+.lookup-btn:active { transform: scale(0.98); }
+.lookup-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.lookup-btn-arrow { font-size: 16px; transition: transform 0.2s; }
+.lookup-btn:hover .lookup-btn-arrow { transform: translateX(3px); }
+
+/* ─── CARD WRAPPER ─── */
+.card-section {
+  margin-bottom: 48px;
+}
+
+.card-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.card-section-label {
+  font-size: 10.5px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-light);
+  font-weight: 600;
+}
+
+.print-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  background: transparent;
+  color: var(--green);
+  border: 1.5px solid var(--green-mid);
+  border-radius: 7px;
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.print-btn:hover {
+  background: var(--green);
+  color: white;
 }
 
 .card-wrapper {
   width: 100%;
+  overflow-x: auto;
+  padding-bottom: 8px;
 }
 
-/* ───────────────────────────────────────── */
-/* DIGITAL NIN CARD */
-/* ───────────────────────────────────────── */
-
-.nin-card {
-  position: relative;
-  width: 815px;
-  height: 460px;
-  background-color: #ffffff;
-  overflow: hidden;
-  
-  -webkit-print-color-adjust: exact;
-  print-color-adjust: exact;
-   
-  background-image: url('background.png');      /* ← new */
-  background-size: 100% 100%;              /* ← new – covers the whole card */
-  background-repeat: no-repeat; 
+/* ─── HOW IT WORKS ─── */
+.how-section {
+  border-top: 1px solid var(--rule);
+  padding: 48px 0;
+  margin-bottom: 48px;
 }
+
+.how-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+  margin-top: 32px;
+}
+
+.how-item {}
+
+.how-num {
+  font-family: var(--serif);
+  font-size: 42px;
+  color: var(--rule);
+  line-height: 1;
+  margin-bottom: 14px;
+  font-style: italic;
+}
+
+.how-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 8px;
+  letter-spacing: 0.01em;
+}
+
+.how-body {
+  font-size: 13.5px;
+  line-height: 1.75;
+  color: var(--ink-light);
+  font-weight: 300;
+}
+
+/* ─── STANDARDS STRIP ─── */
+.standards-strip {
+  background: var(--white);
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  padding: 28px 32px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 24px;
+  align-items: center;
+  margin-bottom: 48px;
+}
+
+.standards-left {}
+
+.standards-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+
+.standards-body {
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: var(--ink-light);
+  font-weight: 300;
+}
+
+.standards-tags {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-end;
+}
+
+.std-tag {
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border: 1px solid var(--rule);
+  border-radius: 20px;
+  color: var(--ink-light);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ─── FOOTER ─── */
+.site-footer {
+  width: 100%;
+  border-top: 1px solid var(--rule);
+  background: var(--white);
+  margin-top: 32px;
+}
+
+.footer-inner {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 32px 40px;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 32px;
+}
+
+.footer-col-title {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink);
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.footer-col-body {
+  font-size: 12.5px;
+  line-height: 1.8;
+  color: var(--ink-light);
+  font-weight: 300;
+}
+
+.footer-bottom {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 16px 40px;
+  border-top: 1px solid var(--rule);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.footer-bottom-left {
+  font-size: 11.5px;
+  color: var(--ink-light);
+}
+
+.footer-bottom-right {
+  font-size: 11px;
+  color: var(--ink-light);
+  letter-spacing: 0.06em;
+}
+
+/* ─── THE ACTUAL CARD — COMPLETELY PRESERVED ─── */
 
 /* background pattern */
 
@@ -295,127 +886,402 @@ body {
   top: 290px;
 }
 
-@media print {
-  @page { margin: 6mm; size: auto; } 
-  body {
-    background: white;
-    padding: 0;
-  }
+.nin-card {
+  position: relative;
+  width: 815px;
+  height: 460px;
+  background-color: #ffffff;
+  overflow: hidden;
+  font-family: 'Roboto', sans-serif;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+  background-image: url('background.png');
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
 
-  .controls,          /* hide the control strip */
-  .demo-toggle,       /* old toggle (now part of .controls) */
-  button {
-    display: none;
-  }
+/* ─── DISCLAIMER BANNER ─── */
+.disclaimer-banner {
+  width: 100%;
+  background: #fffbeb;
+  border-bottom: 1px solid #e9d97a;
+  padding: 11px 40px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.disclaimer-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: #92760a;
+}
+
+.disclaimer-text {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: #6b5a0d;
+  font-weight: 300;
+}
+
+.disclaimer-text strong {
+  font-weight: 600;
+  color: #4a3d06;
+}
+
+@media (max-width: 900px) {
+  .disclaimer-banner { padding: 11px 20px; }
+}
+
+
+@media print {
+  @page { margin: 6mm; size: auto; }
+  body { background: white; padding: 0; }
+  .gov-bar, .disclaimer-banner, .site-header, .info-strip, .lookup-section,
+  .card-section-header, .how-section, .standards-strip,
+  .site-footer, #loader, .controls { display: none !important; }
+  .page-content, .card-section { padding: 0; margin: 0; }
+  .card-wrapper { overflow: visible; }
+}
+
+/* ─── RESPONSIVE ─── */
+@media (max-width: 900px) {
+  .lookup-section { grid-template-columns: 1fr; }
+  .how-grid { grid-template-columns: 1fr 1fr; }
+  .site-header { flex-direction: column; align-items: flex-start; }
+  .site-header-right { max-width: 100%; }
+  .site-desc { text-align: left; }
+  .footer-inner { grid-template-columns: 1fr; gap: 20px; }
+  .standards-strip { grid-template-columns: 1fr; }
+  .standards-tags { flex-direction: row; align-items: flex-start; flex-wrap: wrap; }
+  .info-strip { grid-template-columns: 1fr; }
+  .footer-bottom { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .page-content { padding: 0 20px; }
+  .site-header { padding: 32px 20px 24px; }
+  .gov-bar { padding: 9px 20px; }
+}
+
+@media (max-width: 600px) {
+  .how-grid { grid-template-columns: 1fr; }
 }
 </style>
+
+<!-- Roboto still needed for the card -->
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+
 </head>
 <body>
 
-<!-- ═════════╡ CONTROL STRIP ╞═════════ -->
-<div class="controls">
-  <label>
-    <input type="checkbox" id="demoToggle" checked />
-    Demo Mode
-  </label>
-  <input type="text" id="ninInput" placeholder="Enter NIN" maxlength="11" />
-  <button id="lookupBtn">Lookup</button>
+<!-- ══════════════════════════════════════════════════
+     LOADER
+═══════════════════════════════════════════════════ -->
+<div id="loader">
+  <p class="loader-wordmark">Dmiebi Ventures</p>
+  <div class="bar-loader">
+    <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+  </div>
+  <p class="loader-sub">NIN Slip Retrieval Tool</p>
 </div>
 
-<div class="card-wrapper">
 
-  <div class="nin-card">
-
-    
-
-    <div class="eagle">
-  
+<!-- ══════════════════════════════════════════════════
+     GOVERNMENT BAR
+═══════════════════════════════════════════════════ -->
+<div class="gov-bar reveal">
+  <div class="gov-bar-left">
+    <div class="gov-emblem" style="font-style:normal;font-size:13px;font-weight:800;letter-spacing:-0.5px;">DV</div>
+    <span class="gov-bar-text">Dmiebi Ventures — NIN Slip Retrieval Tool</span>
+  </div>
+  <span class="gov-bar-right">An internal tool for cyber café use only</span>
 </div>
 
-    <div class="header">
-      <h1>FEDERAL REPUBLIC OF NIGERIA</h1>
-      <h2>DIGITAL NIN SLIP</h2>
+<!-- DISCLAIMER BANNER -->
+<div class="disclaimer-banner reveal" style="transition-delay:0.04s">
+  <span class="disclaimer-icon">⚠</span>
+  <p class="disclaimer-text">
+    <strong>Not an official government portal.</strong> This tool is operated solely by <strong>Dmiebi Ventures</strong> to assist customers in retrieving and printing their NIN slips. It is not affiliated with, endorsed by, or connected to NIMC or the Federal Republic of Nigeria. Data is sourced directly from the NIMC API.
+  </p>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════
+     SITE HEADER
+═══════════════════════════════════════════════════ -->
+<header class="site-header reveal" style="transition-delay:0.08s">
+  <div class="site-header-left">
+    <p class="site-kicker">Dmiebi Ventures · Cyber Café Tool</p>
+    <h1 class="site-title">NIN Slip<br><em>Retrieval Tool</em></h1>
+  </div>
+  <div class="site-header-right">
+    <p class="site-desc">A convenience tool used at Dmiebi Ventures to help customers retrieve and print their National Identification Number slip. Enter a customer's NIN to generate a printable slip instantly.</p>
+  </div>
+</header>
+
+
+<!-- ══════════════════════════════════════════════════
+     PAGE CONTENT
+═══════════════════════════════════════════════════ -->
+<main class="page-content">
+
+  <!-- INFO STRIP -->
+  <div class="info-strip reveal" style="transition-delay:0.14s">
+    <div class="info-tile">
+      <p class="info-tile-label">Tool Operator</p>
+      <p class="info-tile-value">Dmiebi Ventures</p>
+    </div>
+    <div class="info-tile">
+      <p class="info-tile-label">Data Source</p>
+      <p class="info-tile-value">NIMC API — Federal Republic of Nigeria</p>
+    </div>
+    <div class="info-tile">
+      <p class="info-tile-label">Slip Accepted For</p>
+      <p class="info-tile-value">SIM Registration · Banking · Government Services</p>
+    </div>
+  </div>
+
+
+  <!-- LOOKUP + DESCRIPTION -->
+  <div class="lookup-section reveal" style="transition-delay:0.2s">
+
+    <div class="lookup-left">
+      <p class="section-label">NIN Lookup</p>
+      <h2 class="lookup-heading">Retrieve your<br>identity record</h2>
+      <p class="lookup-body">Enter a customer's 11-digit National Identification Number to instantly generate a printable digital NIN slip. This tool is operated by Dmiebi Ventures for in-café use and is not affiliated with NIMC or any government body. Data is fetched securely from the NIMC API.</p>
     </div>
 
-    <div class="photo-box">
-      <img id="photo" src="https://placehold.co/163x225/cfd6db/444444?text=PHOTO" alt="Photo">
-    </div>
+    <!-- LOOKUP PANEL -->
+    <div class="lookup-panel">
+      <div class="lookup-panel-header">
+        <span>Identity Lookup</span>
+        <span class="demo-badge" id="demoBadge">Demo Mode</span>
+      </div>
 
-    <div class="info">
-
-      <div class="label">SURNAME/NOM</div>
-      <div class="value" id="surname">WOBO</div>
-
-      <div class="label">GIVEN NAMES/PRENOMS</div>
-      <div class="value" id="firstname">ACHINUHU, FRANCA</div>
-
-      <div class="flex-row">
-
-        <div>
-          <div class="label">DATE OF BIRTH</div>
-          <div class="value" id="dob">10 MAY 1986</div>
+      <!-- Demo toggle -->
+      <div class="demo-toggle-row" id="demoToggleRow">
+        <div class="toggle-track on" id="toggleTrack">
+          <div class="toggle-thumb"></div>
         </div>
+        <span class="toggle-label">Use demo data</span>
+        <span class="toggle-sub">Preview the slip layout</span>
+      </div>
 
-        <div>
-          <div class="label">SEX/SEXE</div>
-          <div class="value" id="gender">F</div>
+      <!-- NIN input -->
+      <div class="field-group">
+        <label class="field-label" for="ninInputNew">National Identification Number</label>
+        <div class="field-input-wrap">
+          <input
+            class="field-input"
+            type="text"
+            id="ninInputNew"
+            placeholder="e.g. 51363125249"
+            maxlength="11"
+            inputmode="numeric"
+          />
         </div>
-
       </div>
 
-    </div>
-
-    <div class="qr-wrapper">
-      <div id="qrcode"></div>
-
-      <div class="qr-text" id="qrNin">51363125249</div>
-
-      <div class="country">NGA</div>
-
-      <div class="issue-title">ISSUE DATE</div>
-
-      <div class="issue-date" id="issueDate">29 APR 2026</div>
-    </div>
-
-    <div class="diagonal-left" id="diagLeft">5136 312 5249</div>
-    <div class="diagonal-right" id="diagRight">5136 312 5249</div>
-
-    <div class="nin-section">
-      <div class="nin-title">
-        National Identification Number (NIN)
+      <!-- Inline loader -->
+      <div class="inline-loader" id="inlineLoader">
+        <div class="inline-bar">
+          <span></span><span></span><span></span><span></span><span></span>
+        </div>
+        <span class="inline-loader-text">Fetching record…</span>
       </div>
 
-      <div class="nin-number" id="ninDisplay">
-        5136 312 5249
-      </div>
+      <button class="lookup-btn" id="lookupBtnNew">
+        <span>Retrieve Slip</span>
+        <span class="lookup-btn-arrow">→</span>
+      </button>
     </div>
 
   </div>
 
-  <img src="./Screenshot 2026-05-01 at 20.50.59.png"
-       style="display:block; width:815px; max-width:100%; margin: 20px auto 20px;"
-       alt="Screenshot below card">
 
-  <!-- ═══════ PRINT BUTTON ═══════ -->
-  <button onclick="window.print()" style="display: block; margin: 0 auto 20px; width: 815px; max-width: 100%;">
-    Print Digital Slip
-  </button>
+  <!-- CARD -->
+  <div class="card-section reveal" style="transition-delay:0.26s">
+    <div class="card-section-header">
+      <span class="card-section-label">Generated Slip Preview</span>
+      <button class="print-btn" onclick="window.print()">
+        <span>⎙</span> Print Slip
+      </button>
+    </div>
 
-</div>
+    <!-- ════════════ CARD — UNTOUCHED ════════════ -->
+    <div class="card-wrapper">
+      <div class="nin-card">
+        <div class="eagle"></div>
 
+        <div class="header">
+          <h1>FEDERAL REPUBLIC OF NIGERIA</h1>
+          <h2>DIGITAL NIN SLIP</h2>
+        </div>
+
+        <div class="photo-box">
+          <img id="photo" src="https://placehold.co/163x225/cfd6db/444444?text=PHOTO" alt="Photo">
+        </div>
+
+        <div class="info">
+          <div class="label">SURNAME/NOM</div>
+          <div class="value" id="surname">WOBO</div>
+
+          <div class="label">GIVEN NAMES/PRENOMS</div>
+          <div class="value" id="firstname">ACHINUHU, FRANCA</div>
+
+          <div class="flex-row">
+            <div>
+              <div class="label">DATE OF BIRTH</div>
+              <div class="value" id="dob">10 MAY 1986</div>
+            </div>
+            <div>
+              <div class="label">SEX/SEXE</div>
+              <div class="value" id="gender">F</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="qr-wrapper">
+          <div id="qrcode"></div>
+          <div class="qr-text" id="qrNin">51363125249</div>
+          <div class="country">NGA</div>
+          <div class="issue-title">ISSUE DATE</div>
+          <div class="issue-date" id="issueDate">29 APR 2026</div>
+        </div>
+
+        <div class="diagonal-left" id="diagLeft">5136 312 5249</div>
+        <div class="diagonal-right" id="diagRight">5136 312 5249</div>
+
+        <div class="nin-section">
+          <div class="nin-title">National Identification Number (NIN)</div>
+          <div class="nin-number" id="ninDisplay">5136 312 5249</div>
+        </div>
+      </div>
+    </div>
+
+    <img src="./Screenshot 2026-05-01 at 20.50.59.png"
+         style="display:block; width:815px; max-width:100%; margin: 20px auto 20px;"
+         alt="Screenshot below card">
+    <!-- ════════════ END CARD ════════════ -->
+
+  </div>
+
+
+  <!-- HOW IT WORKS -->
+  <div class="how-section reveal" style="transition-delay:0.1s">
+    <p class="section-label">How It Works</p>
+    <div class="how-grid">
+      <div class="how-item">
+        <div class="how-num">01</div>
+        <h3 class="how-title">Enter Your NIN</h3>
+        <p class="how-body">Input your 11-digit National Identification Number into the lookup field above. Your NIN was assigned to you at the point of enrolment at any NIMC centre.</p>
+      </div>
+      <div class="how-item">
+        <div class="how-num">02</div>
+        <h3 class="how-title">Record Is Retrieved</h3>
+        <p class="how-body">Your identity details are securely fetched from the NIMC central database, including your biographic data and registered photograph.</p>
+      </div>
+      <div class="how-item">
+        <div class="how-num">03</div>
+        <h3 class="how-title">Print or Save</h3>
+        <p class="how-body">Your digital NIN slip is generated instantly. Use the Print button to produce a physical copy or save a PDF — accepted wherever a NIN slip is required.</p>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- STANDARDS -->
+  <div class="standards-strip reveal" style="transition-delay:0.12s">
+    <div class="standards-left">
+      <h3 class="standards-title">Third-Party Tool — Not an Official Government Service</h3>
+      <p class="standards-body">This tool is built and operated by Dmiebi Ventures as a convenience service for cyber café customers. NIN data is retrieved via the NIMC API and is not stored, logged, or retained by Dmiebi Ventures. Customers retain full ownership of their personal data.</p>
+    </div>
+    <div class="standards-tags">
+      <span class="std-tag">Third-Party Tool</span>
+      <span class="std-tag">NIMC API</span>
+      <span class="std-tag">No Data Storage</span>
+      <span class="std-tag">NDPR Aware</span>
+    </div>
+  </div>
+<a href="/history.html" style="
+    display: inline-block;
+    margin-left: 16px;
+    padding: 8px 16px;
+    border: 1.5px solid #2ea043;
+    border-radius: 7px;
+    color: #2ea043;
+    font-weight: 600;
+    text-decoration: none;
+    font-size: 13px;
+    letter-spacing: 0.04em;
+  ">📋 History</a>
+</main>
+
+
+<!-- ══════════════════════════════════════════════════
+     FOOTER
+═══════════════════════════════════════════════════ -->
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div>
+      <p class="footer-col-title">Dmiebi Ventures</p>
+      <p class="footer-col-body">This NIN slip retrieval tool is an internal utility of Dmiebi Ventures Cyber Café. It is not affiliated with, endorsed by, or operated by NIMC or the Federal Government of Nigeria.</p>
+    </div>
+    <div>
+      <p class="footer-col-title">Accepted Uses of NIN Slip</p>
+      <p class="footer-col-body">SIM card registration<br>Bank account opening<br>Passport & visa applications<br>Government benefit registration<br>Voter registration verification</p>
+    </div>
+    <div>
+      <p class="footer-col-title">Customer Notice</p>
+      <p class="footer-col-body">Your NIN is sensitive personal data. Do not share it with unauthorised parties. Dmiebi Ventures does not store or retain your NIN or identity record after the session ends.</p>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span class="footer-bottom-left">© 2026 Dmiebi Ventures — NIN Slip Retrieval Tool · Not an official NIMC service</span>
+    <span class="footer-bottom-right">Internal Café Tool</span>
+  </div>
+</footer>
+
+
+<!-- ══════════════════════════════════════════════════
+     SCRIPTS
+═══════════════════════════════════════════════════ -->
 <script>
-// ──────────────────────────────────────
-// Backend integration + demo toggle
-// ──────────────────────────────────────
+// ── Page loader ─────────────────────────────────────
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    document.getElementById('loader').classList.add('hidden');
+  }, 1200);
+  setTimeout(() => {
+    document.querySelectorAll('.reveal').forEach(el => el.classList.add('visible'));
+  }, 1350);
+});
+
+// ── Intersection Observer for scroll reveals ─────────
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.1 });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// ──────────────────────────────────────────────────────
+// CARD LOGIC — original JS, wired directly to new UI
+// ──────────────────────────────────────────────────────
 
 const $ = id => document.getElementById(id);
 
-// DOM elements
-const demoToggle = $('demoToggle');
-const ninInput   = $('ninInput');
-const lookupBtn  = $('lookupBtn');
+let demoModeOn = true;
 
-// Demo data
+// ── Toggle UI ──
+const toggleRow   = $('demoToggleRow');
+const toggleTrack = $('toggleTrack');
+const demoBadge   = $('demoBadge');
+
+toggleRow.addEventListener('click', () => {
+  demoModeOn = !demoModeOn;
+  toggleTrack.classList.toggle('on', demoModeOn);
+  demoBadge.style.display = demoModeOn ? '' : 'none';
+});
+
+// ── Demo data ──
 const demoData = {
   nin: '51363125249',
   surname: 'WOBO',
@@ -426,21 +1292,16 @@ const demoData = {
   photo: 'https://placehold.co/163x225/cfd6db/444444?text=PHOTO'
 };
 
-// ── Helpers ──────────────────────────────────────
 function formatNIN(nin) {
   return nin.replace(/(\d{4})(\d{3})(\d{4})/, '$1 $2 $3');
 }
 
 function formatDateFromISO(str) {
-  // expects DD-MM-YYYY from server, returns 'DD MMM YYYY'
   if (!str) return '';
   const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
   const parts = str.split('-');
   if (parts.length === 3) {
-    const day = parts[0];
-    const month = months[parseInt(parts[1], 10) - 1];
-    const year = parts[2];
-    return `${day} ${month} ${year}`;
+    return `${parts[0]} ${months[parseInt(parts[1], 10) - 1]} ${parts[2]}`;
   }
   return str;
 }
@@ -451,9 +1312,7 @@ function getTodayFormatted() {
   return `${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
 }
 
-// ── Populate card UI ──────────────────────────────
 function populateCard(data) {
-  // Handle photo: prefix base64 if needed
   let photoSrc = data.photo || demoData.photo;
   if (photoSrc && !photoSrc.startsWith('data:') && !photoSrc.startsWith('http')) {
     photoSrc = 'data:image/jpeg;base64,' + photoSrc;
@@ -461,25 +1320,22 @@ function populateCard(data) {
 
   const formattedNin = formatNIN(data.nin);
 
-  // Combine firstname + middlename if available (server returns both)
-  let displayGiven = data.firstname;
+  let displayGiven = data.firstname || '';
   if (data.middlename && data.middlename.trim()) {
     displayGiven += ' ' + data.middlename.trim();
   }
-  //displayGiven += ', ' + data.surname;
 
-  $('surname').textContent = data.surname.toUpperCase();
-  $('firstname').textContent = displayGiven.toUpperCase();
-  $('dob').textContent = data.dob || '';
-  $('gender').textContent = (data.gender || '').charAt(0).toUpperCase();
-  $('issueDate').textContent = data.issueDate || getTodayFormatted();
+  $('surname').textContent    = (data.surname || '').toUpperCase();
+  $('firstname').textContent  = displayGiven.toUpperCase();
+  $('dob').textContent        = data.dob || '';
+  $('gender').textContent     = (data.gender || '').charAt(0).toUpperCase();
+  $('issueDate').textContent  = data.issueDate || getTodayFormatted();
   $('ninDisplay').textContent = formattedNin;
-  $('diagLeft').textContent = formattedNin;
-  $('diagRight').textContent = formattedNin;
-  $('qrNin').textContent = data.nin;
-  $('photo').src = photoSrc;
+  $('diagLeft').textContent   = formattedNin;
+  $('diagRight').textContent  = formattedNin;
+  $('qrNin').textContent      = data.nin;
+  $('photo').src              = photoSrc;
 
-  // QR code
   const qrContainer = $('qrcode');
   qrContainer.innerHTML = '';
   new QRCode(qrContainer, {
@@ -490,27 +1346,30 @@ function populateCard(data) {
   });
 }
 
-// Initial load with demo data
+// Initial demo render
 populateCard(demoData);
 
-// ── Lookup button handler ─────────────────────────
-lookupBtn.addEventListener('click', async () => {
-  const nin = ninInput.value.trim();
+// ── Lookup button ──
+const newBtn       = $('lookupBtnNew');
+const newInput     = $('ninInputNew');
+const inlineLoader = $('inlineLoader');
+
+async function doLookup() {
+  const nin = newInput.value.trim();
 
   if (nin.length !== 11 || !/^\d{11}$/.test(nin)) {
     alert('Please enter a valid 11-digit NIN.');
     return;
   }
 
-  // If demo mode is on, still use demo data (ignore lookup)
-  if (demoToggle.checked) {
+  if (demoModeOn) {
     populateCard(demoData);
     return;
   }
 
   // Real lookup
-  lookupBtn.disabled = true;
-  lookupBtn.textContent = 'Looking up…';
+  newBtn.style.display = 'none';
+  inlineLoader.classList.add('active');
 
   try {
     const res = await fetch('/api/lookup', {
@@ -526,33 +1385,29 @@ lookupBtn.addEventListener('click', async () => {
       return;
     }
 
-    // Map server fields to card
-    const cardData = {
-      nin: nin,
-      surname: data.surname || '',
-      firstname: data.firstname || '',
+    populateCard({
+      nin,
+      surname:    data.surname    || '',
+      firstname:  data.firstname  || '',
       middlename: data.middlename || '',
-      gender: data.gender || '',
-      dob: formatDateFromISO(data.birthdate),
-      issueDate: getTodayFormatted(),
-      photo: data.photo || '',
-    };
-
-    populateCard(cardData);
+      gender:     data.gender     || '',
+      dob:        formatDateFromISO(data.birthdate),
+      issueDate:  getTodayFormatted(),
+      photo:      data.photo      || '',
+    });
 
   } catch (err) {
     alert('Network error. Please check your connection and try again.');
   } finally {
-    lookupBtn.disabled = false;
-    lookupBtn.textContent = 'Lookup';
+    newBtn.style.display = '';
+    inlineLoader.classList.remove('active');
   }
-});
+}
 
-// Allow Enter key in input
-ninInput.addEventListener('keydown', e => {
-  if (e.key === 'Enter') lookupBtn.click();
-});
+newBtn.addEventListener('click', doLookup);
+newInput.addEventListener('keydown', e => { if (e.key === 'Enter') doLookup(); });
 </script>
+
 
 </body>
 </html>

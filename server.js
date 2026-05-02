@@ -2,12 +2,23 @@ const express = require('express');
 const app = express();
 const PORT = process.env.PORT || 8080;
 
+// ─── Firebase Admin Setup ────────────────────────────────
+const admin = require('firebase-admin');
+const serviceAccount = require('./firebase-key.json');   // 🔒 Never commit!
+admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+const db = admin.firestore();
+
+// ─── Middleware ──────────────────────────────────────────
 app.use(express.json());
 app.use(express.static('static'));
 
+// ─── NIN Verification Provider ──────────────────────────
 const API_KEY = 'ninbvn_e4ce715a19852fa0b0515f9e';
 const PROVIDER_URL = 'https://ninbvnportal.com.ng/api/nin-verification';
 
+// ══════════════════════════════════════════════════════════
+//  POST /api/lookup  –  Verify NIN & save to history
+// ══════════════════════════════════════════════════════════
 app.post('/api/lookup', async (req, res) => {
   const { nin, consent } = req.body;
 
@@ -34,41 +45,83 @@ app.post('/api/lookup', async (req, res) => {
       return res.status(400).json({ error: data.message || 'Verification failed' });
     }
 
-    // ⚠️ The real data is inside data.data (nested)
     const d = data.data?.data;
     if (!d) {
       return res.status(500).json({ error: 'Unexpected response structure' });
     }
 
-    // Assemble address from residence fields
+    const fullname = [d.firstname, d.middlename, d.surname]
+      .filter(Boolean)
+      .join(' ')
+      .toUpperCase();
+
+    // ─── Save to Firebase Firestore ────────────────────────
+    await db.collection('lookups').add({
+      nin,
+      fullname,
+      phone: d.telephoneno || d.phone || '', 
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
     const addressParts = [
       d.residence_address,
       d.residence_town,
-      d.residence_state
+      d.residence_state,
     ].filter(Boolean);
     const address = addressParts.length > 0 ? addressParts.join(', ') : '';
 
-    // Return everything the frontend expects
     res.json({
       firstname: d.firstname || '',
       surname: d.surname || '',
       middlename: d.middlename || '',
-      fullname: [d.firstname, d.middlename, d.surname].filter(Boolean).join(' '),
-      photo: d.photo || '',                          // base64 string, frontend will add data: prefix
-      signature: d.signature || '',                  // empty for this provider
+      fullname,
+      photo: d.photo || '',
+      signature: d.signature || '',
       birthdate: d.birthdate || '',
       gender: d.gender || '',
       phone: d.telephoneno || d.phone || '',
       maritalstatus: d.maritalstatus || '',
       birthstate: d.birthstate || '',
       birthlga: d.birthlga || '',
-      address: address,
+      address,
     });
   } catch (err) {
     console.error('Provider error:', err);
     res.status(500).json({ error: 'Something went wrong' });
   }
 });
+
+// ══════════════════════════════════════════════════════════
+//  GET /api/history  –  Manager-only lookup history
+// ══════════════════════════════════════════════════════════
+app.get('/api/history', async (req, res) => {
+  const { password } = req.query;
+
+  const MANAGER_PASSWORD = 'dviebi2024';
+
+  if (password !== MANAGER_PASSWORD) {
+    return res.status(401).json({ error: 'Incorrect password' });
+  }
+
+  try {
+    const snapshot = await db.collection('lookups')
+      .orderBy('timestamp', 'desc')
+      .limit(100)
+      .get();
+
+    const records = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      timestamp: doc.data().timestamp?.toDate?.()?.toISOString() || null,
+    }));
+
+    res.json(records);
+  } catch (err) {
+    console.error('History fetch error:', err);
+    res.status(500).json({ error: 'Could not load history' });
+  }
+});
+
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
